@@ -6,12 +6,14 @@ class Kml
   attr_reader :images, :name
 
   def initialize(uri)
+    @uri = uri
+
     doc = Nokogiri::XML(open(uri))
 
     @name = doc.search('kml Document name').text
     @images = doc.search('kml Document GroundOverlay').map do |go|
-      KmlImage.new(
-        uri: go.search('Icon href').text,
+      GroundOverlay.new(
+        uri: absolute_path(go.search('Icon href').text),
         north: go.search('LatLonBox north').text,
         south: go.search('LatLonBox south').text,
         east: go.search('LatLonBox east').text,
@@ -22,10 +24,16 @@ class Kml
 
   ##
   # Returns a 2d array of images in their physical order.
-  #
-  # This might assume the lat/longs are in the northern hemisphere.
   def organize_images
-    images.group_by(&:north).map{ |_, row| row.sort_by(&:east) }.reverse
+
+    # 1. Group rows (images with the same north value).
+    # 2. convert to array [north, [<GroundOverlay>]].
+    # 3. then sort the groups ofrows by descending north value.
+    # 4. then sort each row by images east values.
+    images.group_by(&:north)                # 1.
+      .to_a                                 # 2.
+      .sort_by(&:first).reverse             # 3
+      .map { |_, row| row.sort_by(&:east) } # 4
   end
 
   ##
@@ -37,9 +45,18 @@ class Kml
     end
     map.append_vertical
   end
+
+  private
+
+  ##
+  # Temporary shim before I real add support for kmz files.
+  # This probably breaks kml's with links to the web.
+  def absolute_path path
+    File.join(File.dirname(@uri), path)
+  end
 end
 
-class KmlImage
+class GroundOverlay
   attr_reader :uri, :north, :south, :east, :west
 
   def initialize(uri: uri, north: n, south: s, east: e, west: w)
