@@ -3,7 +3,7 @@ require 'bigdecimal'
 
 class Kml
   include Magick
-  attr_reader :images, :name
+  attr_reader :ground_overlays, :name
 
   def initialize(uri)
     @uri = uri
@@ -11,7 +11,7 @@ class Kml
     doc = Nokogiri::XML(open(uri))
 
     @name = doc.search('kml Document name').text
-    @images = doc.search('kml Document GroundOverlay').map do |go|
+    @ground_overlays = doc.search('kml Document GroundOverlay').map do |go|
       GroundOverlay.new(
         uri: absolute_path(go.search('Icon href').text),
         north: go.search('LatLonBox north').text,
@@ -23,14 +23,14 @@ class Kml
   end
 
   ##
-  # Returns a 2d array of images in their physical order.
-  def organize_images
+  # Returns a 2d array of ground overlays in their physical order.
+  def organize_ground_overlays
 
-    # 1. Group rows (images with the same north value).
+    # 1. Group rows (ground_overlays with the same north value).
     # 2. convert to array [north, [<GroundOverlay>]].
     # 3. then sort the groups ofrows by descending north value.
-    # 4. then sort each row by images east values.
-    images.group_by(&:north)                # 1.
+    # 4. then sort each row by ground overlays east values.
+    @organize_ground_overlays ||= ground_overlays.group_by(&:north)                # 1.
       .to_a                                 # 2.
       .sort_by(&:first).reverse             # 3
       .map { |_, row| row.sort_by(&:east) } # 4
@@ -40,10 +40,16 @@ class Kml
   # Returns the kml as a single image.
   def to_image
     map = ImageList.new
-    map += organize_images.map do |row|
+    map += organize_ground_overlays.map do |row|
       ImageList.new(*row.map(&:uri)).append_horizontal
     end
     map.append_vertical
+  end
+
+  def to_map
+    ref = organize_ground_overlays.first.first
+    puts 1 / ref.width_in_miles
+    to_image
   end
 
   private
@@ -66,8 +72,21 @@ class GroundOverlay
     @east  = BigDecimal.new(east)
     @west  = BigDecimal.new(west)
   end
+
+  def width_in_miles
+    north_width = Geocoder::Calculations.distance_between([@north, @west], [@north, @east])
+    south_width = Geocoder::Calculations.distance_between([@south, @west], [@south, @east])
+    return north_width + south_width / 2
+  end
+
+  def height_in_miles
+    east_width = Geocoder::Calculations.distance_between([@north, @east], [@south, @east])
+    west_width = Geocoder::Calculations.distance_between([@north, @west], [@south, @west])
+    return east_width + west_width / 2
+  end
 end
 
+# Reopen the class to define these sane aliases for append.
 class Magick::ImageList
   def append_horizontal
     append(false)
