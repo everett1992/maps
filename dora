@@ -14,8 +14,10 @@ class MapExtractor < Thor
     out_file = in_file.gsub(/\.[^.]*?$/, '.png')
 
     kml = Kml.new(in_file)
+
     puts "Converting #{in_file} to #{out_file}"
-    puts kml.to_image.write(out_file)
+
+    kml.to_image.write(out_file)
   end
 end
 
