@@ -1,0 +1,20 @@
+#!/bin/env ruby
+
+require 'debugger'
+require 'rubygems'
+require 'thor'
+require 'zip'      # Rubyzip
+require 'RMagick'
+require_relative './kml'
+
+
+class MapExtractor < Thor
+  desc "map file", "Converts the kml file to a flat map"
+  def map file
+    kml = Kml.new(file)
+    puts kml.name
+    puts kml.to_image.write('test.jpg')
+  end
+end
+
+MapExtractor.start

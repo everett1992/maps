@@ -1,0 +1,18 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    mini_portile (0.6.0)
+    nokogiri (1.6.2.1)
+      mini_portile (= 0.6.0)
+    rmagick (2.13.2)
+    rubyzip (1.1.4)
+    thor (0.19.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  nokogiri
+  rmagick
+  rubyzip
+  thor
