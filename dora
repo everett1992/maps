@@ -10,10 +10,12 @@ require_relative './kml'
 
 class MapExtractor < Thor
   desc "map file", "Converts the kml file to a flat map"
-  def map file
-    kml = Kml.new(file)
-    puts kml.name
-    puts kml.to_image.write('test.jpg')
+  def map in_file
+    out_file = in_file.gsub(/\.[^.]*?$/, '.png')
+
+    kml = Kml.new(in_file)
+    puts "Converting #{in_file} to #{out_file}"
+    puts kml.to_image.write(out_file)
   end
 end
 
