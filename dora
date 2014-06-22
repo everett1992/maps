@@ -5,7 +5,6 @@ require 'rubygems'
 require 'thor'
 require 'zip'      # Rubyzip
 require 'RMagick'
-require 'geocoder'
 require_relative './kml'
 
 
@@ -18,7 +17,9 @@ class MapExtractor < Thor
 
     puts "Converting #{in_file} to #{out_file}"
 
-    kml.to_map.write(out_file)
+    kml.to_map
+      .tap { |map| puts map.info }
+      .write(out_file)
   end
 end
 

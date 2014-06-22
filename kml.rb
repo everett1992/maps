@@ -1,8 +1,14 @@
-require 'nokogiri'
+require 'RMagick'
 require 'bigdecimal'
+require 'nokogiri'
+require_relative './dimentions'
+require_relative './image_list'
+require_relative './ground_overlay'
+require_relative './map'
 
 class Kml
   include Magick
+  include Dimentions
   attr_reader :ground_overlays, :name
 
   def initialize(uri)
@@ -14,12 +20,18 @@ class Kml
     @ground_overlays = doc.search('kml Document GroundOverlay').map do |go|
       GroundOverlay.new(
         uri: absolute_path(go.search('Icon href').text),
-        north: go.search('LatLonBox north').text,
-        south: go.search('LatLonBox south').text,
-        east: go.search('LatLonBox east').text,
-        west: go.search('LatLonBox west').text
+        n: BigDecimal.new(go.search('LatLonBox north').text),
+        s: BigDecimal.new(go.search('LatLonBox south').text),
+        e: BigDecimal.new(go.search('LatLonBox east').text),
+        w: BigDecimal.new(go.search('LatLonBox west').text)
       )
     end
+
+    # Create a bounding box for the combined images.
+    @north = BigDecimal.new ground_overlays.sort_by(&:north).last.north
+    @south = BigDecimal.new ground_overlays.sort_by(&:south).first.south
+    @east = BigDecimal.new ground_overlays.sort_by(&:east).last.east
+    @west = BigDecimal.new ground_overlays.sort_by(&:west).first.west
   end
 
   ##
@@ -46,10 +58,10 @@ class Kml
     map.append_vertical
   end
 
+  ##
+  # Add scale and compass rose to the image.
   def to_map
-    ref = organize_ground_overlays.first.first
-    puts 1 / ref.width_in_miles
-    to_image
+    Map.new(to_image, n: @north, s: @south, e: @east, w: @west)
   end
 
   private
@@ -60,39 +72,5 @@ class Kml
   def absolute_path path
     File.join(File.dirname(@uri), path)
   end
-end
 
-class GroundOverlay
-  attr_reader :uri, :north, :south, :east, :west
-
-  def initialize(uri: uri, north: n, south: s, east: e, west: w)
-    @uri = uri;
-    @north = BigDecimal.new(north)
-    @south = BigDecimal.new(south)
-    @east  = BigDecimal.new(east)
-    @west  = BigDecimal.new(west)
-  end
-
-  def width_in_miles
-    north_width = Geocoder::Calculations.distance_between([@north, @west], [@north, @east])
-    south_width = Geocoder::Calculations.distance_between([@south, @west], [@south, @east])
-    return north_width + south_width / 2
-  end
-
-  def height_in_miles
-    east_width = Geocoder::Calculations.distance_between([@north, @east], [@south, @east])
-    west_width = Geocoder::Calculations.distance_between([@north, @west], [@south, @west])
-    return east_width + west_width / 2
-  end
-end
-
-# Reopen the class to define these sane aliases for append.
-class Magick::ImageList
-  def append_horizontal
-    append(false)
-  end
-
-  def append_vertical
-    append(true)
-  end
 end
