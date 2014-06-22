@@ -13,13 +13,16 @@ class MapExtractor < Thor
   def map in_file
     out_file = File.basename(in_file.gsub(/\.[^.]*?$/, '.png'))
 
-    kml = Kml.new(in_file)
+    map = Dir.chdir(File.dirname(in_file)) do
 
-    puts "Converting #{in_file} to #{out_file}"
+      kml = Kml.new(File.basename(in_file))
+      puts "Converting #{in_file} to #{out_file}"
 
-    kml.to_map
-      .tap { |map| puts map.info }
-      .write(out_file)
+      kml.to_map
+    end
+
+    puts map.info
+    map.write(out_file)
   end
 end
 

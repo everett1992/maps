@@ -19,7 +19,7 @@ class Kml
     @name = doc.search('kml Document name').text
     @ground_overlays = doc.search('kml Document GroundOverlay').map do |go|
       GroundOverlay.new(
-        uri: absolute_path(go.search('Icon href').text),
+        uri: go.search('Icon href').text,
         n: BigDecimal.new(go.search('LatLonBox north').text),
         s: BigDecimal.new(go.search('LatLonBox south').text),
         e: BigDecimal.new(go.search('LatLonBox east').text),
@@ -63,14 +63,4 @@ class Kml
   def to_map
     Map.new(to_image, n: @north, s: @south, e: @east, w: @west)
   end
-
-  private
-
-  ##
-  # Temporary shim before I real add support for kmz files.
-  # This probably breaks kml's with links to the web.
-  def absolute_path path
-    File.join(File.dirname(@uri), path)
-  end
-
 end
