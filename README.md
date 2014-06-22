@@ -12,6 +12,8 @@ Turning kml's into a single image.
 `$ dora map file.kml`
 
 # Todo
+ - [x] KML support
+ - [ ] KMZ support
  - [x] Stitch together images into single mosaic.
  - [x] Add correct scale.
  - [ ] Add correct map heading (compass rose).
